@@ -17,12 +17,12 @@ class StegDecoder:
     def _load_dictionary(self) -> Set[str]:
         with open("dictionary.txt") as f:
             return set(
-                j for j in f.read().splitlines() 
-                if not j.strip().startswith("#")
+                j.strip() for j in f.read().splitlines() 
+                if not j.strip().startswith("#") and j.strip()
             )
 
     def _get_next_char(self, indx: int, byte_position: int) -> str:
-        assert 0 < byte_position < 8, "Byte position must be between 0 and 7!"
+        assert 0 <= byte_position < 8, "Byte position must be between 0 and 7!"
         
         char_int_value = 0
         bit_mask = 1 << byte_position
