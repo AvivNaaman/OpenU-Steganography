@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 from steg_hide import hide
+import cv2
 
 @pytest.fixture
-def to_hide():
+def message():
     return "Hello World"
 
 @pytest.fixture
@@ -22,7 +23,15 @@ def empty_image_result():
     result_flat[45:90] = [0,0,0, 0,1,0, 1,0,1, 1,1,0, 1,1,0, 1,1,1, 1,0,1, 1,1,0, 0,1,0, 0,1,1, 0,1,1, 0,0,0, 1,1,0, 0,1,0, 0,0,0, ]
     return result_flat.reshape(result.shape)
 
-def test_hide_empty_image(empty_image: np.ndarray, empty_image_result: np.ndarray, to_hide: str):
+def test_hide_empty_image(empty_image: np.ndarray, empty_image_result: np.ndarray, message: str):
     # Test hide() function with an empty image
-    result = hide(empty_image, to_hide)
+    result = hide(empty_image, message)
     assert np.all(result == empty_image_result)
+
+@pytest.mark.parametrize("to_hide_path", ["icons8-lock-48.png"])
+@pytest.mark.parametrize("assertion_path", ["tests/icons8-lock-48_HelloWorld.png"])
+def test_hide_real_images(to_hide_path: str, assertion_path: str, message: str):
+    to_hide = cv2.imread(to_hide_path)
+    to_assert = cv2.imread(assertion_path)
+    hidden = hide(to_hide, message)
+    assert np.all(hidden == to_assert)
