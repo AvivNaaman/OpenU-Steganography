@@ -17,7 +17,7 @@ class StegDecoder:
     def _load_dictionary(self) -> Set[str]:
         with open("dictionary.txt") as f:
             return set(
-                j.strip() for j in f.read().splitlines() 
+                j.strip().lower() for j in f.read().splitlines() 
                 if not j.strip().startswith("#") and j.strip()
             )
 
@@ -30,9 +30,9 @@ class StegDecoder:
         # Process a single byte
         for i in range(8):
             # Get current bit
-            bit = self.flat_image[indx + i] & bit_mask
+            bit = int((self.flat_image[indx + i] & bit_mask) > 0)
             # Add to char value
-            char_int_value |= bit << i
+            char_int_value |= bit << (7-i)
         
         # Convert to char
         return chr(char_int_value)
@@ -43,13 +43,16 @@ class StegDecoder:
 
     def _dict_get_word(self, word: str) -> Optional[str]:
         # That can be replaced with a wiser distance metric for matching words.
-        if word in self.dictionary:
+        if word.lower() in self.dictionary:
             return word
         return None
 
     def _get_next_word(self, start_indx: int) -> Optional[str]:
         options = ["" for _ in range(self.N_LOOKUP_BITS)]
-        for word_length in range(1, self.max_word_length + 1):
+        # We don't have to look up for too long words,
+        # And we do have to remember that the array can be small or at it's end.
+        for word_length in range(1, min(self.max_word_length + 1,
+                                        (self.flat_image.nbytes - start_indx) // 8)):
             # Get next chars for each possible index
             next_chars = self._get_next_char_options(start_indx + (word_length - 1) * 8)
             
