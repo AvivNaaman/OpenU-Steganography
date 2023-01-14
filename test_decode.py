@@ -21,7 +21,7 @@ def test_get_dictionary(steg_decoder: StegDecoder):
     
 @pytest.fixture
 def zeros_decoder(steg_decoder: StegDecoder):
-    steg_decoder.flat_image = np.zeros(8, dtype=np.uint8)
+    steg_decoder.flat_image = np.zeros(1000, dtype=np.uint8)
     return steg_decoder
 
 def test_get_next_char_zeros(zeros_decoder: StegDecoder):
@@ -60,9 +60,43 @@ def test_get_next_word_nothing(zeros_decoder: StegDecoder, _0aZ: StegDecoder):
     assert _0aZ._get_next_word(0) is None
 
 @pytest.fixture
-def hello_world(steg_decoder: StegDecoder):
-    steg_decoder.flat_image = np.zeros((10,10,3), dtype=np.uint8)
+def hello_world_zeros(request, zeros_decoder: StegDecoder):
+    # We'll be putting `Hello` @ byte offset 0 & `world` @ byte offset 2 - just for the test.
+    # `Hello ` in binary is 01001000 01100101 01101100 01101100 01101111 00100000
+    # `world`  in binary is 01110111 01101111 01110010 01101100 01100100 
+    HELLO_OFFSET = 0
+    WORLD_OFFSET = 2
     
-
-def test_get_hello_world():
-    pass
+    Hello_ = [
+        0, 1, 0, 0, 1, 0, 0, 0,
+        0, 1, 1, 0, 0, 1, 0, 1,
+        0, 1, 1, 0, 1, 1, 0, 0,
+        0, 1, 1, 0, 1, 1, 0, 0,
+        0, 1, 1, 0, 1, 1, 1, 1,
+        0, 0, 1, 0, 0, 0, 0, 0
+    ]
+    
+    world = [
+        0, 1, 1, 1, 0, 1, 1, 1,
+        0, 1, 1, 0, 1, 1, 1, 1,
+        0, 1, 1, 1, 0, 0, 1, 0,
+        0, 1, 1, 0, 1, 1, 0, 0,
+        0, 1, 1, 0, 0, 1, 0, 0
+    ]
+    # apply offset of 3rd byte to world:
+    world = [w << WORLD_OFFSET for w in world]
+    # mask of bits to keep values of 
+    base_mask = ~(np.array([1<<HELLO_OFFSET for _ in Hello_] + [1<<WORLD_OFFSET for _ in world]).astype(np.uint8))
+    
+    offset: int = request.param
+    # Make all bits that needs to be replaced 0
+    zeros_decoder.flat_image[offset:offset+len(Hello_ + world)] &= base_mask
+    # apply the data
+    zeros_decoder.flat_image[offset:offset+len(Hello_ + world)] |= np.array(Hello_ + world, dtype=np.uint8)
+    
+    # Request param i the offset to put the data in.
+    return zeros_decoder
+    
+@pytest.mark.parametrize("hello_world_zeros", [0,1,2,3,7,8,15,16,32,48,62,63,65], indirect=True)
+def test_get_hello_world(hello_world_zeros: StegDecoder):
+    assert hello_world_zeros.decode() == "Hello world"

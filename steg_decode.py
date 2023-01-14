@@ -43,7 +43,7 @@ class StegDecoder:
 
     def _dict_get_word(self, word: str) -> Optional[str]:
         # That can be replaced with a wiser distance metric for matching words.
-        if word.lower() in self.dictionary:
+        if word.lower().strip() in self.dictionary:
             return word
         return None
 
@@ -51,22 +51,23 @@ class StegDecoder:
         options = ["" for _ in range(self.N_LOOKUP_BITS)]
         # We don't have to look up for too long words,
         # And we do have to remember that the array can be small or at it's end.
+        last_word_match = None
         for word_length in range(1, min(self.max_word_length + 1,
                                         (self.flat_image.nbytes - start_indx) // 8)):
             # Get next chars for each possible index
             next_chars = self._get_next_char_options(start_indx + (word_length - 1) * 8)
-            
+
             # Add found chars to options
             for i, char in enumerate(next_chars):
                 options[i] += char
-                
+
             # Check if any of the options is a word, return if OK
             for option in options:
                 word = self._dict_get_word(option)
                 if word is not None:
-                    return word
-        # Failure
-        return None
+                    last_word_match = word
+
+        return last_word_match
 
     def decode(self) -> Optional[str]:
         message = ""
@@ -78,6 +79,7 @@ class StegDecoder:
             if word is None:
                 # Keep trying if no words found yet.
                 if not message:
+                    start_indx += 1
                     continue
                 # Otherwise, we're done.
                 return message
@@ -85,6 +87,7 @@ class StegDecoder:
             message += word
             # Move start index to the end of the word - where next word may be.
             start_indx += len(word) * 8
+        return message if message else None
 
 
 def main():

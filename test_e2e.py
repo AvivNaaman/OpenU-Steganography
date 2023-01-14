@@ -15,12 +15,17 @@ def zeros_image(real_image: np.ndarray):
 
 @pytest.mark.parametrize("message", ["Hello World", "Goodbye", "For real"])
 def test_hide_and_decode_real(real_image: np.ndarray, message: str):
-    assert np.all(
-        message == StegDecoder(hide(real_image, message)).decode()
-    )
+    assert message == StegDecoder(hide(real_image, message)).decode()
     
 @pytest.mark.parametrize("message", ["What did you mean", "Hi my friend"])
 def test_hide_and_decode_zeros(zeros_image: np.ndarray, message: str):
-    assert np.all(
-        message == StegDecoder(hide(zeros_image, message)).decode()
-    )
+    assert message == StegDecoder(hide(zeros_image, message)).decode()
+    
+
+@pytest.mark.parametrize("message", ["Hbjkf", "newm", "0123456789"])
+def test_hide_and_decode_real_invalid(real_image: np.ndarray, message: str):
+    assert StegDecoder(hide(real_image, message)).decode() is None
+    
+@pytest.mark.parametrize("message", ["Whafdast digfdvfd yoffu mqqean", "Heyh kfns"])
+def test_hide_and_decode_zeros_invalid(zeros_image: np.ndarray, message: str):
+    assert StegDecoder(hide(zeros_image, message)).decode() is None
