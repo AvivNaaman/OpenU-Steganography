@@ -31,7 +31,7 @@ def test_hide_empty_image(empty_image: np.ndarray, empty_image_result: np.ndarra
 @pytest.mark.parametrize("to_hide_path", ["icons8-lock-48.png"])
 @pytest.mark.parametrize("assertion_path", ["tests/icons8-lock-48_HelloWorld.png"])
 def test_hide_real_images(to_hide_path: str, assertion_path: str, message: str):
-    to_hide = cv2.imread(to_hide_path)
-    to_assert = cv2.imread(assertion_path)
+    to_hide = cv2.cvtColor(cv2.imread(to_hide_path), cv2.COLOR_BGR2RGB)
+    to_assert = cv2.cvtColor(cv2.imread(assertion_path), cv2.COLOR_BGR2RGB)
     hidden = hide(to_hide, message)
     assert np.all(hidden == to_assert)

@@ -43,7 +43,7 @@ class StegDecoder:
 
     def _dict_get_word(self, word: str) -> Optional[str]:
         # That can be replaced with a wiser distance metric for matching words.
-        if word.lower().strip() in self.dictionary:
+        if word.lower().rstrip() in self.dictionary:
             return word
         return None
 
@@ -100,7 +100,7 @@ def main():
     args = parser.parse_args()
     
     # Read image
-    image = cv2.imread(args.image)
+    image = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGB)
     if image is None:
         print("Error: Could not read image. Exiting.")
         sys.exit(1)

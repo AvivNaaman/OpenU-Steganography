@@ -37,7 +37,7 @@ def main():
     args = parser.parse_args()
     
     # Read image
-    image = cv2.imread(args.image)
+    image = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGB)
     if image is None:
         print("Error: Could not read image. Exiting.")
         sys.exit(1)

@@ -5,7 +5,7 @@ import numpy as np
 
 @pytest.fixture
 def steg_decoder():
-    return StegDecoder(cv2.imread("tests/icons8-lock-48_HelloWorld.png"))
+    return StegDecoder(cv2.cvtColor(cv2.imread("tests/icons8-lock-48_HelloWorld.png"), cv2.COLOR_BGR2RGB))
 
 def test_load_dictionary(steg_decoder: StegDecoder):
     # Dict loading
