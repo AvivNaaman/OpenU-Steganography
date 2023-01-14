@@ -39,7 +39,7 @@ class StegDecoder:
 
     def _get_next_char_options(self, indx: int) -> Generator[str, None, None]:
         for j in range(self.N_LOOKUP_BITS):
-            yield self._get_next_char(self.flat_image, indx, j)
+            yield self._get_next_char(indx, j)
 
     def _dict_get_word(self, word: str) -> Optional[str]:
         # That can be replaced with a wiser distance metric for matching words.

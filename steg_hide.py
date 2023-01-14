@@ -18,7 +18,7 @@ def hide(img: np.ndarray, msg: str):
         # Process a single byte
         for i in range(8):
             # Value of current bit to process
-            bit = (char_int_value >> i) & 1
+            bit = (char_int_value >> (7-i)) & 1
             # Hide in the least significant bit
             flat_image[flat_index] = (flat_image[flat_index] & 254) | bit
             flat_index += 1
