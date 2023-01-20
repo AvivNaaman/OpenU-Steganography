@@ -61,6 +61,9 @@ class StegDecoder:
             for i, char in enumerate(next_chars):
                 options[i] += char
 
+            if not all(o.isalnum() for o in options):
+                return None
+            
             # Check if any of the options is a word, return if OK
             for option in options:
                 word = self._dict_get_word(option)
@@ -70,7 +73,8 @@ class StegDecoder:
         return last_word_match
 
     def decode(self) -> Optional[str]:
-        message = ""
+        to_return = ""
+        current_message = ""
         # Lookup can begin in every place in the input array.
         start_indx = 0
         while start_indx < self.flat_image.nbytes:
@@ -78,16 +82,19 @@ class StegDecoder:
             # Failed to find a word
             if word is None:
                 # Keep trying if no words found yet.
-                if not message:
+                if not to_return:
                     start_indx += 1
-                    continue
-                # Otherwise, we're done.
-                return message
+                else:
+                    to_return += current_message + '\n'
+                    print(current_message, flush=True)
+                    current_message = ""
+                continue
+            
             # Found a word - add it to the message
-            message += word
+            current_message += word
             # Move start index to the end of the word - where next word may be.
             start_indx += len(word) * 8
-        return message if message else None
+        return to_return if to_return else None
 
 
 def main():
