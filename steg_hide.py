@@ -1,6 +1,6 @@
 import argparse
 import sys
-import cv2
+from PIL import Image
 import numpy as np
 from pathlib import Path
 
@@ -37,7 +37,7 @@ def main():
     args = parser.parse_args()
     
     # Read image
-    image = cv2.cvtColor(cv2.imread(args.image), cv2.COLOR_BGR2RGB)
+    image = np.array(Image.open(args.image))
     if image is None:
         print("Error: Could not read image. Exiting.")
         sys.exit(1)
@@ -47,7 +47,7 @@ def main():
     
     # Save result
     dest_file_name = Path(args.image).stem + "_hidden.png"
-    cv2.imwrite(dest_file_name, result)
+    Image.fromarray(result).save(dest_file_name)
 
 if __name__ == "__main__":
     main()

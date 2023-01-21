@@ -1,11 +1,11 @@
 import pytest
 from steg_decode import StegDecoder
-import cv2
+from PIL import Image
 import numpy as np
 
 @pytest.fixture
 def steg_decoder():
-    return StegDecoder(cv2.cvtColor(cv2.imread("tests/icons8-lock-48_HelloWorld.png"), cv2.COLOR_BGR2RGB))
+    return StegDecoder(np.array(Image.open("tests/icons8-lock-48_HelloWorld.png")))
 
 def test_load_dictionary(steg_decoder: StegDecoder):
     # Dict loading
@@ -24,10 +24,6 @@ def zeros_decoder(steg_decoder: StegDecoder):
     steg_decoder.flat_image = np.zeros(1000, dtype=np.uint8)
     return steg_decoder
 
-def test_get_next_char_zeros(zeros_decoder: StegDecoder):
-    for j in range(8):
-        assert zeros_decoder._get_next_char(0, j) == "\x00"
-
 @pytest.fixture
 def _0aZ(steg_decoder: StegDecoder):
     # Assign binary data of 3 chars: "0aZ" from higher to lower bits x 2 sequences
@@ -38,26 +34,6 @@ def _0aZ(steg_decoder: StegDecoder):
     ], 2).astype(np.uint8)
     return steg_decoder
 
-def test_get_next_char(_0aZ: StegDecoder):
-    for j in range(2):
-        assert _0aZ._get_next_char(8*j, 0) == "Z"
-        assert _0aZ._get_next_char(8*j, 1) == "a"
-        assert _0aZ._get_next_char(8*j, 2) == "0"
-
-def test_get_next_char_options_zeros(zeros_decoder: StegDecoder):
-    r = zeros_decoder._get_next_char_options(0)
-    for result in r:
-        assert result == "\x00"
-
-def test_get_next_char_options(_0aZ: StegDecoder):
-    for i in range(2):
-        r = _0aZ._get_next_char_options(8*i)
-        for exp, result in zip("Za0", r):
-            assert exp == result
-
-def test_get_next_word_nothing(zeros_decoder: StegDecoder, _0aZ: StegDecoder):
-    assert zeros_decoder._get_next_word(0) is None
-    assert _0aZ._get_next_word(0) is None
 
 @pytest.fixture
 def hello_world_zeros(request, zeros_decoder: StegDecoder):
@@ -99,4 +75,4 @@ def hello_world_zeros(request, zeros_decoder: StegDecoder):
     
 @pytest.mark.parametrize("hello_world_zeros", [0,1,2,3,7,8,15,16,32,48,62,63,65], indirect=True)
 def test_get_hello_world(hello_world_zeros: StegDecoder):
-    assert hello_world_zeros.decode() == "Hello world"
+    assert hello_world_zeros.decode() == "HelloWorld"

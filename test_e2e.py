@@ -1,12 +1,12 @@
 import pytest
 import numpy as np
-import cv2
 from steg_decode import StegDecoder
 from steg_hide import hide
+from PIL import Image
 
 @pytest.fixture
 def real_image():
-    return cv2.cvtColor(cv2.imread("icons8-lock-48.png"), cv2.COLOR_BGR2RGB)
+    return np.array(Image.open("icons8-lock-48.png"))
 
 @pytest.fixture
 def zeros_image(real_image: np.ndarray):
