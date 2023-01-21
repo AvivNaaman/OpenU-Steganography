@@ -11,7 +11,7 @@ def test_load_dictionary(steg_decoder: StegDecoder):
     # Dict loading
     assert steg_decoder.dictionary is not None
     assert "hello" in steg_decoder.dictionary
-    assert len(steg_decoder.dictionary) == 25322
+    assert len(steg_decoder.dictionary) == 3000
 
 def test_get_dictionary(steg_decoder: StegDecoder):
     # Dict get method

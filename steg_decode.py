@@ -51,7 +51,7 @@ class StegDecoder:
     def next_word_at_offset_index(self, bits_arrays: List[str], current_index: int):
         # Try to get longest word from dictionary starting at current_index from any of the bits_arrays:
         longest_word = None
-        for word_length in range(self.max_word_length):
+        for word_length in range(1, self.max_word_length):
             for bit_array in bits_arrays:
                 word = "".join(bit_array[current_index:current_index+word_length])
                 if self._dict_get_word(word):
