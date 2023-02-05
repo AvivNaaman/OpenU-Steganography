@@ -13,11 +13,11 @@ def zeros_image(real_image: np.ndarray):
     return np.zeros_like(real_image)
 
 
-@pytest.mark.parametrize("message", ["Hello World", "what up", "For real"])
+@pytest.mark.parametrize("message", ["Hello World, what up? For real!"])
 def test_hide_and_decode_real(real_image: np.ndarray, message: str):
     assert message == StegDecoder(hide(real_image, message)).decode()
     
-@pytest.mark.parametrize("message", ["What do you mean", "Hi my friend"])
+@pytest.mark.parametrize("message", ["Hi my friend.... What do you mean?"])
 def test_hide_and_decode_zeros(zeros_image: np.ndarray, message: str):
     assert message == StegDecoder(hide(zeros_image, message)).decode()
     

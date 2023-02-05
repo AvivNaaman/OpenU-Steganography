@@ -15,9 +15,9 @@ def test_load_dictionary(steg_decoder: StegDecoder):
 
 def test_get_dictionary(steg_decoder: StegDecoder):
     # Dict get method
-    assert steg_decoder._dict_get_word("hello") == "hello"
-    assert steg_decoder._dict_get_word("HELLO") == "HELLO"
-    assert steg_decoder._dict_get_word("fghdsajhgkdjlah") is None
+    assert steg_decoder._single_word_hueristic("hello") == "hello"
+    assert steg_decoder._single_word_hueristic("HELLO") == "HELLO"
+    assert steg_decoder._single_word_hueristic("fghdsajhgkdjlah") is None
     
 @pytest.fixture
 def zeros_decoder(steg_decoder: StegDecoder):

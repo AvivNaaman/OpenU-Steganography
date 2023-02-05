@@ -11,7 +11,7 @@
             "program": "steg_decode.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["icons8-lock-48_hidden.png"]
+            "args": ["~/Downloads/hidden.png"]
         },
         {
             "name": "Python: Hide",

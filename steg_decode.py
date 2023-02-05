@@ -3,17 +3,21 @@ import sys
 from typing import List, Optional, Set
 import numpy as np
 from PIL import Image
+import string
 
 
 class StegDecoder:
     N_LOOKUP_BITS = 3
+    # [A-Za-z,.\s!?]:
+    VALID_CHARS = set(chr(i) for i in range(ord('A'), ord('Z')+1)) \
+        | set(chr(i) for i in range(ord('a'), ord('z')+1)) \
+        | {".", ",", " ", "!", "?"}
 
     def __init__(self, image: np.ndarray):
         self.flat_image = image.flatten()
         self.dictionary = self._load_dictionary()
         self.max_word_length = max(len(j) for j in self.dictionary)
         self._all_chars_options = self._extract_chars()
-        
 
     def _load_dictionary(self) -> Set[str]:
         with open("dictionary.txt") as f:
@@ -22,11 +26,10 @@ class StegDecoder:
                 if not j.strip().startswith("#") and j.strip()
             )
 
-    
-
-    def _dict_get_word(self, word: str) -> Optional[str]:
-        # That can be replaced with a wiser distance metric for matching words.
-        if word.lower().rstrip(" .,?!") in self.dictionary:
+    def _single_word_hueristic(self, word: str) -> Optional[str]:
+        # A valid word has at least one alpha char, and all alpha chars are grouped together, surroneded by special chars.
+        if any(j in string.ascii_letters for j in word) and \
+            all(k in string.ascii_letters for k in word.strip(" .,?!")):
             return word
         return None
 
@@ -44,19 +47,56 @@ class StegDecoder:
                 chr_arr = np.packbits(masked_normed[k:end_indx] \
                     .reshape(-1,8), axis=-1) \
                     .tobytes().decode("charmap")
+                # chr_arr = "".join(j if j in self.VALID_CHARS else '\0' for j in chr_arr)
                 curr_bit_options.append(chr_arr)
             all_options.append(curr_bit_options)
         return all_options
     
-    def next_word_at_offset_index(self, bits_arrays: List[str], current_index: int):
-        # Try to get longest word from dictionary starting at current_index from any of the bits_arrays:
-        longest_word = None
+    def _word_options(self, bits_arrays: List[str], current_index: int) -> List[str]:
+        possible_words = []
+        bits_arrays = bits_arrays.copy()
         for word_length in range(1, self.max_word_length):
             for bit_array in bits_arrays:
+                # Hueristic - if found char that is invalid, stop looking in the array.
+                if not bit_array[current_index+word_length-1] in self.VALID_CHARS:
+                    bits_arrays.remove(bit_array)
+                    continue
+                
                 word = "".join(bit_array[current_index:current_index+word_length])
-                if self._dict_get_word(word):
-                    longest_word = word
-        return longest_word
+                
+                # Hueristic - for a single word lookup.
+                if self._single_word_hueristic(word):
+                    possible_words.append(word)
+
+        return possible_words
+    
+    MESSAGE_VALID_THRESH = 0.5
+    
+    def is_message_valid(self, message: str) -> bool:
+        if len(message) <= 20:
+            return False
+        words = message.split(" ,.!?")
+        return sum(1 for w in words if w.rstrip(" ,.!?") in self.dictionary) / len(words) > self.MESSAGE_VALID_THRESH
+    
+    def decode_recursively(self, relevant_arrays: List[str],
+                           current_index: int,
+                           current_message: str) -> List[str]:
+        next_words = self._word_options(relevant_arrays, current_index)
+        print(next_words)
+        if not next_words:
+            if self.is_message_valid(current_message):
+                return [current_message]
+            return []
+        else:
+            results = []
+            for word_option in next_words:
+                # There must be a space/special char between words.
+                if not word_option[0].isalpha() and not current_message[-1].isalpha():
+                    continue
+                results += self.decode_recursively(relevant_arrays,
+                                        current_index+len(word_option),
+                                        current_message+word_option) 
+            return results
     
     def decode_at_offset(self, offset: int) -> Optional[str]:
         """ 
@@ -66,23 +106,14 @@ class StegDecoder:
         assert 0 <= offset < 8, "Byte offset must be between 0 and 7."
         # This contains N_LOOKUP_BITS arrays, each of which contains all the possible chars for the current index.
         relevant_arrays: List[str] = [j[offset] for j in self._all_chars_options]
-        current_index = 0
+        current_index = 96703 # TODO: Make 0
         current_message = ""
         # Try fetching a word from the dictionary, starting at the current index.
-        while current_index < len(relevant_arrays[0]):
-            next_word = self.next_word_at_offset_index(relevant_arrays, current_index)
-            if next_word is None:
-                # Already building a message - check if valid.
-                if len(current_message) >= 5:
-                    return current_message
-                # Reset invalid message
-                elif current_message:
-                    current_message = ""
-            else:
-                current_message += next_word
-                current_index += len(next_word)
-                continue
-            # Keep searching
+        while current_index < 96900:
+            results = self.decode_recursively(relevant_arrays, current_index, current_message)
+            if results:
+                print(" | ".join(results))
+                return results[0]
             current_index += 1
         return None
             
@@ -90,7 +121,7 @@ class StegDecoder:
     def decode(self) -> Optional[str]:
         # Offset of 0-7 bytes from beginning of image array.
         for posssible_offset in range(8):
-            res = self.decode_at_offset(posssible_offset)
+            res = self.decode_at_offset(6)
             if res:
                 return res
 
