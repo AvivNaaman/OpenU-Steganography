@@ -7,7 +7,8 @@ from PIL import Image
 from string import ascii_letters
 
 N_LOOKUP_BITS = 3
-MESSAGE_VALID_THRESH = 0.5
+MESSAGE_VALID_THRESH = 0.7
+WORD_SEP = " "
 VALID_CHARS = set(chr(i) for i in range(ord('A'), ord('Z')+1)) \
     | set(chr(i) for i in range(ord('a'), ord('z')+1)) \
     | {".", ",", " ", "!", "?"}
@@ -23,10 +24,9 @@ logger = logging.getLogger("Steg.Decode")
 logging.basicConfig(level=logging.DEBUG)
 
 def is_message_valid(message: str) -> bool:
-    if len(message) <= 20:
-        return False
-    words = message.split(" ,.!?")
-    return sum(1 for w in words if w.rstrip(" ,.!?") in dictionary) / len(words) > MESSAGE_VALID_THRESH
+    words = message.split(WORD_SEP)
+    return len(words) > 20 and \
+        sum(1 for w in words if w.rstrip(" ,.!?") in dictionary) / len(words) > MESSAGE_VALID_THRESH
             
 def decode_strings(flat_image: np.ndarray, offset: int):
     """ 
@@ -47,39 +47,24 @@ def decode_strings(flat_image: np.ndarray, offset: int):
         result.append(decoded)
     return result
 
-def extract_message_with_current(working_string: str, all_strings: List[str]) -> Optional[str]:
-    """ Assuming all the strings have the same length. """
-    # Must always begin with a letter
-    if working_string[0] not in ascii_letters:
-        return None
+def decode_recursive(strings: List[str], message: str, current_string_index: int) -> Optional[str]:
+    message_valid = is_message_valid(message)
+    for i, string in enumerate(strings):
+        if not string:
+            continue
+        if string[0] not in VALID_CHARS:
+            continue
+        # First char of word is ascii.
+        if message and message[-1] == WORD_SEP and string[0] not in ascii_letters and string[0] != WORD_SEP:
+            continue
+        # Must be a space when switching words (not at the beginning of the message)
+        if i != current_string_index and message and string[0] != WORD_SEP and message[-1] != WORD_SEP:
+            continue
+        result = decode_recursive([s[1:] for s in strings], message + string[0], i)
+        if result:
+            return result
+    return message if message_valid else None
 
-    message = working_string[0]
-    last_char = working_string[0]
-    for index in range(1, len(working_string)):
-        # If any string contains space, switch to it right away.
-        for string in all_strings:
-            if string[index] == " ":
-                working_string = string
-        # Char is invalid, try to look for a valid one in other strings.
-        # if not found, end of message.
-        if working_string[index] not in VALID_CHARS:
-            stop = True
-            # Last char must be a space to switch a word.
-            # If the next word has a space, it was caught & fixed in the previous loop!
-            if last_char != " ":
-                break
-            for string in all_strings:
-                if string[index] in ascii_letters:
-                    working_string = string
-                    stop = False
-                    break
-            if stop:
-                break
-        message += working_string[index]
-        last_char = working_string[index]
-        index += 1
-    
-    return message if is_message_valid(message) else None
 
 def extract_message(strings: List[str]) -> Optional[str]:
     """ 
@@ -87,12 +72,11 @@ def extract_message(strings: List[str]) -> Optional[str]:
     The message may be split across strings, but always continues from the last index of the previous string.
     """
     current_index = 0
-    for current_index in range(96703, len(strings[0])):
+    for current_index in range(len(strings[0])):
         current_strings = [string[current_index:] for string in strings]
-        for current_string in current_strings:
-            result = extract_message_with_current(current_string, current_strings)
-            if result is not None:
-                return result
+        result = decode_recursive(current_strings, "", 0)
+        if result is not None:
+            return result
     # Never found :(
     return None
 
@@ -101,7 +85,7 @@ def decode(image: np.ndarray):
     # Decoding can begin in each offset from 0 to 7.
     # Byte size is 8, so 8+ will just repeat older results.
     flat_image = image.flatten()
-    for i in range(6, 8):
+    for i in range(8):
         logger.debug("Processing offset %d" % i)
         strings = decode_strings(flat_image, i)
         m = extract_message(strings)
