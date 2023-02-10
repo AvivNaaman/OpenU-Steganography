@@ -1,4 +1,5 @@
 import argparse
+import logging
 import sys
 from typing import List, Optional, Set
 import numpy as np
@@ -18,7 +19,8 @@ def _load_dictionary() -> Set[str]:
             if not j.strip().startswith("#") and j.strip()
         )
 dictionary = _load_dictionary()
-            
+logger = logging.getLogger("Steg.Decode")
+logging.basicConfig(level=logging.DEBUG)
 
 def is_message_valid(message: str) -> bool:
     if len(message) <= 20:
@@ -46,13 +48,14 @@ def decode_strings(flat_image: np.ndarray, offset: int):
     return result
 
 def extract_message_with_current(working_string: str, all_strings: List[str]) -> Optional[str]:
+    """ Assuming all the strings have the same length. """
     # Must always begin with a letter
     if working_string[0] not in ascii_letters:
         return None
 
-    message = ""
-    index = 0
-    while index < len(working_string):
+    message = working_string[0]
+    last_char = working_string[0]
+    for index in range(1, len(working_string)):
         # If any string contains space, switch to it right away.
         for string in all_strings:
             if string[index] == " ":
@@ -60,15 +63,21 @@ def extract_message_with_current(working_string: str, all_strings: List[str]) ->
         # Char is invalid, try to look for a valid one in other strings.
         # if not found, end of message.
         if working_string[index] not in VALID_CHARS:
-            stop = False
+            stop = True
+            # Last char must be a space to switch a word.
+            # If the next word has a space, it was caught & fixed in the previous loop!
+            if last_char != " ":
+                break
             for string in all_strings:
                 if string[index] in ascii_letters:
                     working_string = string
-                    stop = True
+                    stop = False
                     break
             if stop:
                 break
         message += working_string[index]
+        last_char = working_string[index]
+        index += 1
     
     return message if is_message_valid(message) else None
 
@@ -77,9 +86,8 @@ def extract_message(strings: List[str]) -> Optional[str]:
     Given a list of strings, tries to look up for the hidden message in the strings.
     The message may be split across strings, but always continues from the last index of the previous string.
     """
-    max_index = len(strings[0])
     current_index = 0
-    while current_index < max_index:
+    for current_index in range(96703, len(strings[0])):
         current_strings = [string[current_index:] for string in strings]
         for current_string in current_strings:
             result = extract_message_with_current(current_string, current_strings)
@@ -93,7 +101,8 @@ def decode(image: np.ndarray):
     # Decoding can begin in each offset from 0 to 7.
     # Byte size is 8, so 8+ will just repeat older results.
     flat_image = image.flatten()
-    for i in range(8):
+    for i in range(6, 8):
+        logger.debug("Processing offset %d" % i)
         strings = decode_strings(flat_image, i)
         m = extract_message(strings)
         if m is not None:
@@ -115,7 +124,7 @@ def main():
         sys.exit(1)
     
     # Extract message
-    message = StegDecoder(image).decode()
+    message = decode(image)
     
     if message is None:
         print("Error: Could not find a message in image. Exiting.")
