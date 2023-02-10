@@ -7,7 +7,7 @@ from PIL import Image
 from string import ascii_letters
 
 N_LOOKUP_BITS = 3
-MESSAGE_VALID_THRESH = 0.7
+MESSAGE_VALID_THRESH = 0.5
 WORD_SEP = " "
 VALID_CHARS = set(chr(i) for i in range(ord('A'), ord('Z')+1)) \
     | set(chr(i) for i in range(ord('a'), ord('z')+1)) \
@@ -20,8 +20,6 @@ def _load_dictionary() -> Set[str]:
             if not j.strip().startswith("#") and j.strip()
         )
 dictionary = _load_dictionary()
-logger = logging.getLogger("Steg.Decode")
-logging.basicConfig(level=logging.DEBUG)
 
 def is_message_valid(message: str) -> bool:
     words = message.split(WORD_SEP)
@@ -86,7 +84,6 @@ def decode(image: np.ndarray):
     # Byte size is 8, so 8+ will just repeat older results.
     flat_image = image.flatten()
     for i in range(8):
-        logger.debug("Processing offset %d" % i)
         strings = decode_strings(flat_image, i)
         m = extract_message(strings)
         if m is not None:
