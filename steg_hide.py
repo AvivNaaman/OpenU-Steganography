@@ -1,22 +1,26 @@
 import argparse
 import sys
-from PIL import Image
-import numpy as np
 from pathlib import Path
 
+import numpy as np
+from PIL import Image
+
+
 def hide(img: np.ndarray, msg: str):
+    """ Hides msg in the lower bits of img, bit by bit, in standard order (ltr,top-bottom) """
     # Make sure array is capable of storing all the data
     assert img.nbytes * 8 >= len(msg), "Message too long for image"
+
+    # Construct a numpy array of single bits to hide
+    bits_arr = np.unpackbits(np.frombuffer(msg.encode(), dtype=np.uint8)) 
     
     # 3-d image --> 1-d array
     flat_image = img.flatten()
-    
-    # Construct a numpy array of single bits to hide
-    bits_flat_array = np.unpackbits(np.frombuffer(msg.encode(), dtype=np.uint8))
-    
-    # Force lower bit of all flat_image values (from 0-end) to be the same as bits_flat_array
-    flat_image[:len(bits_flat_array)] = (flat_image[:len(bits_flat_array)] & bits_flat_array) | bits_flat_array
-    
+    # Remove last bit of all modified indices
+    flat_image[:len(bits_arr)] &= 0b11111110
+    # Set last bit of all modified indices to the bit to hide
+    flat_image[:len(bits_arr)] |= bits_arr
+
     # Get shape back
     return flat_image.reshape(img.shape)
 
