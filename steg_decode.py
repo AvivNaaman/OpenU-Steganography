@@ -56,7 +56,7 @@ def decode_strings(flat_image: np.ndarray, offset: int):
         result.append(decoded)
     return result
 
-def find_message_recursive(strings: List[str], message: str, curr_str_indx: int) -> Optional[str]:
+def find_message_recursive(strings: List[str], message: str, curr_str_indx: int, idx: int) -> Optional[str]:
     """
     Looks up for a valid message in the strings as required. Gets the strings as an input,
     currently built message, and the index of the last used string from strings.
@@ -64,13 +64,13 @@ def find_message_recursive(strings: List[str], message: str, curr_str_indx: int)
     """
     for i, string in enumerate(strings):
         # Invalid char - current string does not match.
-        if not string or string[0] not in ALL_VALID_CHARS:
+        if idx >= len(string) or string[idx] not in ALL_VALID_CHARS:
             continue
         # There must be a space before or after changing the current source string.
-        if i != curr_str_indx and message and string[0] != WORD_SEP and message[-1] != WORD_SEP:
+        if i != curr_str_indx and message and string[idx] != WORD_SEP and message[-1] != WORD_SEP:
             continue
         # Recursive step - pass the (potentially) new message, look up on next char of each string.
-        result = find_message_recursive([s[1:] for s in strings], message + string[0], i)
+        result = find_message_recursive(strings, message + string[idx], i, idx+1)
         # return if found a valid message.
         if result:
             return result
@@ -84,8 +84,7 @@ def find_message(strings: List[str]) -> Optional[str]:
     """
     # Try to find a message in each index of the strings.
     for current_index in range(len(strings[0])):
-        current_strings = [string[current_index:] for string in strings]
-        result = find_message_recursive(current_strings, "", 0)
+        result = find_message_recursive(strings, "", 0, current_index)
         # return only if found a valid message.
         if result is not None:
             return result
