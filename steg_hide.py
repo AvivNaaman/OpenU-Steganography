@@ -1,3 +1,13 @@
+"""
+Steganography - Hide
+Hides a message in an image, using the least significant bit of each pixel.
+
+usage:
+    python steg_hide.py <image> <message>
+    
+Aviv Naaman [2023]
+"""
+
 import argparse
 import sys
 from pathlib import Path
@@ -7,18 +17,19 @@ from PIL import Image
 
 
 def hide(img: np.ndarray, msg: str):
-    """ Hides msg in the lower bits of img, bit by bit, in standard order (ltr,top-bottom) """
+    """ Hides msg in the lower bits of img,
+    bit by bit, in standard order (ltr,top-bottom), continuously """
     # Make sure array is capable of storing all the data
     assert img.nbytes * 8 >= len(msg), "Message too long for image"
 
-    # Construct a numpy array of single bits to hide
-    bits_arr = np.unpackbits(np.frombuffer(msg.encode(), dtype=np.uint8)) 
+    # Construct a numpy array of the lower bits to set by the message content.
+    bits_arr = np.unpackbits(np.frombuffer(msg.encode(), dtype=np.uint8))
     
-    # 3-d image --> 1-d array
+    # convert 3-d image --> 1-d array, keep the order as required.
     flat_image = img.flatten()
-    # Remove last bit of all modified indices
+    # Set last bit of all relevant indices to 0
     flat_image[:len(bits_arr)] &= 0b11111110
-    # Set last bit of all modified indices to the bit to hide
+    # Set last bit of all relevant indices to 1 where needed, others will stay 0.
     flat_image[:len(bits_arr)] |= bits_arr
 
     # Get shape back
@@ -43,8 +54,8 @@ def main():
     # Hide message
     result = hide(image, args.message)
     
-    # Save result
-    dest_file_name = Path(args.image).stem + "_hidden.png"
+    # Save result to same folder with _hiden.png suffix
+    dest_file_name = Path(args.image).parent / (Path(args.image).stem + "_hidden.png")
     Image.fromarray(result).save(dest_file_name)
 
 if __name__ == "__main__":

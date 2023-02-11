@@ -1,3 +1,13 @@
+"""
+Steganography - Decode
+Finds a hidden message in an image, using the specified parameters and the dictionary.txt file.
+
+usage:
+    python steg_decode.py <image>
+    
+Aviv Naaman [2023]
+"""
+
 import argparse
 import sys
 from string import ascii_letters
@@ -6,6 +16,7 @@ from typing import List, Optional, Set
 import numpy as np
 from PIL import Image
 
+OUT_FILE_NAME = "ID.txt"
 # Number of lower bits to look for chars for message decoding.
 N_LOOKUP_BITS = 3
 # Fraction of words in the message that must be present in the dictionary.
@@ -56,24 +67,38 @@ def decode_strings(flat_image: np.ndarray, offset: int):
         result.append(decoded)
     return result
 
-def find_message_recursive(strings: List[str], message: str, curr_str_indx: int, idx: int) -> Optional[str]:
-    """
-    Looks up for a valid message in the strings as required. Gets the strings as an input,
+def find_message_recursive(strings: List[str], message: str,
+                           last_str_indx: int, strings_index: int) -> Optional[str]:
+    """Looks up for a valid message in the strings as required. Gets the strings as an input,
     currently built message, and the index of the last used string from strings.
-    Returns a message if found and valid, None otherwise.
+
+    Args:
+        strings (List[str]): Extracted strings collection to look for message in.
+        message (str): Current built message.
+        last_str_indx (int): Index of last used string to build the message, out of strings.
+        strings_index (int): Index of the current char to search in strings.
+
+    Returns:
+        Optional[str]: The message if found and valid, None otherwise.
     """
+    # First, try to find a longer message by adding chars from strings to the current message.
     for i, string in enumerate(strings):
+        # End of string
+        if strings_index >= len(string):
+            continue
         # Invalid char - current string does not match.
-        if idx >= len(string) or string[idx] not in ALL_VALID_CHARS:
+        if strings_index >= len(string) or string[strings_index] not in ALL_VALID_CHARS:
             continue
         # There must be a space before or after changing the current source string.
-        if i != curr_str_indx and message and string[idx] != WORD_SEP and message[-1] != WORD_SEP:
+        if i != last_str_indx and message and string[strings_index] != WORD_SEP and message[-1] != WORD_SEP:
             continue
+        
         # Recursive step - pass the (potentially) new message, look up on next char of each string.
-        result = find_message_recursive(strings, message + string[idx], i, idx+1)
+        result = find_message_recursive(strings, message + string[strings_index], i, strings_index+1)
         # return if found a valid message.
         if result:
             return result
+    # if no longer message was found, check if the current message is valid - and return it if so.
     return message if is_message_valid(message) else None
 
 
@@ -129,7 +154,7 @@ def main():
         sys.exit(1)
     
     # Save result
-    with open("ID.txt", "w") as f:
+    with open(OUT_FILE_NAME, "w") as f:
         f.write(message)
 
 if __name__ == "__main__":
