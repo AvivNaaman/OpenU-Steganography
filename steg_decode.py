@@ -23,14 +23,15 @@ N_LOOKUP_BITS = 3
 MESSAGE_VALID_THRESH = 0.5
 # Minimum number of words in the message.
 MINIMUM_WORDS_IN_MESSAGE = 20
-# A char that separates words in the message.
-WORD_SEP = " "
+# A group of chars that separates words in the message.
+WORD_SEP = " ,.!?"
 # All the letters that may appear in a word.
 WORD_LETTERS = ascii_letters
 # Symbols that may appear in a message, additionally to seperators and core chars.
-EXTRA_MESSAGE_SYMBOLS = ",.!?"
 # All the allowed chars in a message.
-ALL_VALID_CHARS = set(WORD_LETTERS) | {WORD_SEP} | set(EXTRA_MESSAGE_SYMBOLS)
+ALL_VALID_CHARS = set(WORD_LETTERS) | set(WORD_SEP)
+
+# Should remain unchanged.
 BITS_IN_BYTE = 8
     
 def _load_dictionary() -> Set[str]:
@@ -41,11 +42,21 @@ def _load_dictionary() -> Set[str]:
         )
 dictionary = _load_dictionary()
 
+def split_to_words(message: str) -> List[str]:
+    """ Splits a string by any of the specified word seperators. """
+    for sep_char, replace_char in zip(WORD_SEP, WORD_SEP[1:]):
+        message = message.replace(sep_char, replace_char)
+    return [w for w in message.split(WORD_SEP[-1]) if w] 
+
 def is_message_valid(message: str) -> bool:
     """ Returns whether message is considered a valid one. """
-    words = message.split(WORD_SEP)
+    # A word is at least 1 char long, message must longer than minimum # of words.
+    if len(message) < MINIMUM_WORDS_IN_MESSAGE:
+        return False
+    # Split to words by any seperator
+    words = split_to_words(message)
     return len(words) >= MINIMUM_WORDS_IN_MESSAGE and \
-        sum(w.rstrip(WORD_SEP+EXTRA_MESSAGE_SYMBOLS) in dictionary for w in words) / len(words) > MESSAGE_VALID_THRESH
+        sum(w.rstrip(WORD_SEP) in dictionary for w in words) / len(words) > MESSAGE_VALID_THRESH
             
 def decode_strings(flat_image: np.ndarray, offset: int):
     """ 
@@ -89,8 +100,8 @@ def find_message_recursive(strings: List[str], message: str,
         # Invalid char - current string does not match.
         if strings_index >= len(string) or string[strings_index] not in ALL_VALID_CHARS:
             continue
-        # There must be a space before or after changing the current source string.
-        if i != last_str_indx and message and string[strings_index] != WORD_SEP and message[-1] != WORD_SEP:
+        # There must be a seperator before or after changing the current source string.
+        if i != last_str_indx and message and string[strings_index] not in WORD_SEP and message[-1] not in WORD_SEP:
             continue
         
         # Recursive step - pass the (potentially) new message, look up on next char of each string.
